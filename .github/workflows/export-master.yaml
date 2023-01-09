@@ -62,14 +62,22 @@ jobs:
           cd release
           find -type f -name '*.json' | while read f; do mv "$f" "${f%.json}"; done
           find -type f -name '*.csv' | while read f; do mv "$f" "${f%.csv}"; done
+      - name: update-build-number
+        uses: mlilback/build-number@v1
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        with:
+          base: 238
+          run_id: ${GITHUB_RUN_NUMBER}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_RUN_NUMBER: ${GITHUB_RUN_NUMBER}
         with:
-          tag_name: v1.0.${{ github.run_number }} + 238
-          release_name: Release v1.0.${{ github.run_number }} + 238
+          tag_name: v1.0.${GITHUB_RUN_NUMBER}
+          release_name: Release v1.0.${GITHUB_RUN_NUMBER}
           draft: false
           prerelease: false
 
