@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: audit-pod
+  labels:
+    app: audit-pod
+spec:
+  containers:
+  - name: test-container
+    image: hashicorp/http-echo:0.2.3
+    securityContext:
+      capabilities:
+        add: ["NET_ADMIN", "SYS_TIME"]
+        drop: ["ALL"]
+  - name: test-container1
+    image: hashicorp/http-echo:0.2.3
+    securityContext:
+      capabilities:
+        add: ["SYS_TIME"]
+        drop: ["NET_ADMIN"]
+  - name: test-container2
+    image: hashicorp/http-echo:0.2.3
+    securityContext:
+      capabilities:
+        drop: ["NET_RAW"]
+  - name: test-container3
+    image: hashicorp/http-echo:0.2.3
+    securityContext:
+      capabilities:
+        drop: [all]
