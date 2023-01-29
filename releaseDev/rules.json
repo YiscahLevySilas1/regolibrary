@@ -5560,6 +5560,57 @@
         "rule": "package armo_builtins\nimport data.cautils as cautils\n\n# fails if user can delete events\n#RoleBinding to Role\ndeny [msga] {\n    roles := [role |  role= input[_]; role.kind == \"Role\"]\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"RoleBinding\"]\n    role:= roles[_]\n    rolebinding := rolebindings[_]\n\n    rule:= role.rules[_]\n    canDeleteEventsResource(rule)\n    canDeleteEventsVerb(rule)\n\n    rolebinding.roleRef.kind == \"Role\"\n    rolebinding.roleRef.name == role.metadata.name\n\n    subject := rolebinding.subjects[i]\n    path := sprintf(\"subjects[%v]\", [format_int(i, 10)])\n\n    msga := {\n\t    \"alertMessage\": sprintf(\"The following %v: %v can delete events\", [subject.kind, subject.name]),\n\t\t\"alertScore\": 6,\n       \"failedPaths\": [path],\n\t\t\"packagename\": \"armo_builtins\",\n          \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [role,rolebinding],\n\t\t\t\"externalObjects\": {\n\t\t\t\t\"subject\" : [subject]\n\t\t\t}\n\t\t}\n    }\n}\n\n\n# fails if user can delete events\n#RoleBinding to ClusterRole\ndeny[msga] {\n    roles := [role |  role= input[_]; role.kind == \"ClusterRole\"]\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"RoleBinding\"]\n    role:= roles[_]\n    rolebinding := rolebindings[_]\n\n    rule:= role.rules[_]\n    canDeleteEventsResource(rule)\n    canDeleteEventsVerb(rule)\n\n    rolebinding.roleRef.kind == \"ClusterRole\"\n    rolebinding.roleRef.name == role.metadata.name\n\n\n    subject := rolebinding.subjects[i]\n    path := sprintf(\"subjects[%v]\", [format_int(i, 10)])\n\n    msga := {\n\t    \"alertMessage\": sprintf(\"The following %v: %v can delete events\", [subject.kind, subject.name]),\n\t\t\"alertScore\": 6,\n       \"failedPaths\": [path],\n\t\t\"packagename\": \"armo_builtins\",\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [role,rolebinding],\n\t\t\t\"externalObjects\": {\n\t\t\t\t\"subject\" : [subject]\n\t\t\t}\n\t\t}\n    }\n}\n\n\n# fails if user can delete events\n# ClusterRoleBinding to ClusterRole\ndeny[msga] {\n    roles := [role |  role= input[_]; role.kind == \"ClusterRole\"]\n    clusterrolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"ClusterRoleBinding\"]\n    role:= roles[_]\n    clusterrolebinding := clusterrolebindings[_]\n\n    rule:= role.rules[_]\n    canDeleteEventsResource(rule)\n    canDeleteEventsVerb(rule)\n\n    clusterrolebinding.roleRef.kind == \"ClusterRole\"\n    clusterrolebinding.roleRef.name == role.metadata.name\n\n\n    subject := clusterrolebinding.subjects[i]\n    path := sprintf(\"subjects[%v]\", [format_int(i, 10)])\n\n    msga := {\n\t    \"alertMessage\": sprintf(\"The following %v: %v can delete events\", [subject.kind, subject.name]),\n\t\t\"alertScore\": 6,\n       \"failedPaths\": [path],\n\t\t\"packagename\": \"armo_builtins\",\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [role,clusterrolebinding],\n\t\t\t\"externalObjects\": {\n\t\t\t\t\"subject\" : [subject]\n\t\t\t}\n\t\t}\n    }\n}\n\n\ncanDeleteEventsResource(rule) {\n cautils.list_contains(rule.resources,\"events\")\n}\ncanDeleteEventsResource(rule) {\n is_api_group(rule)\n cautils.list_contains(rule.resources,\"*\")\n}\n\nis_api_group(rule) {\n\tapiGroup := rule.apiGroups[_]\n\tapiGroup == \"*\"\n}\n\nis_api_group(rule) {\n\tapiGroup := rule.apiGroups[_]\n\tapiGroup == \"\"\n}\n\ncanDeleteEventsVerb(rule) {\n    cautils.list_contains(rule.verbs,\"delete\")\n}\n\ncanDeleteEventsVerb(rule) {\n    cautils.list_contains(rule.verbs,\"deletecollection\")\n}\n\ncanDeleteEventsVerb(rule) {\n    cautils.list_contains(rule.verbs,\"*\")\n}"
     },
     {
+        "name": "drop-all-capabilities",
+        "attributes": {
+            "armoBuiltin": true
+        },
+        "ruleLanguage": "Rego",
+        "match": [
+            {
+                "apiGroups": [
+                    ""
+                ],
+                "apiVersions": [
+                    "v1"
+                ],
+                "resources": [
+                    "Pod"
+                ]
+            },
+            {
+                "apiGroups": [
+                    "apps"
+                ],
+                "apiVersions": [
+                    "v1"
+                ],
+                "resources": [
+                    "Deployment",
+                    "ReplicaSet",
+                    "DaemonSet",
+                    "StatefulSet"
+                ]
+            },
+            {
+                "apiGroups": [
+                    "batch"
+                ],
+                "apiVersions": [
+                    "*"
+                ],
+                "resources": [
+                    "Job",
+                    "CronJob"
+                ]
+            }
+        ],
+        "ruleDependencies": [],
+        "description": "",
+        "remediation": "",
+        "ruleQuery": "armo_builtins",
+        "rule": "package armo_builtins\n\nimport future.keywords.in\n\n# Fails if pod does not drop all capabilities \ndeny[msga] {\n\twl := input[_]\n\twl.kind == \"Pod\"\n\tpath_to_containers := [\"spec\", \"containers\"]\n\tcontainers := object.get(wl, path_to_containers, [])\n\tcontainer := containers[i]\n\n\tfixPaths := container_doesnt_drop_ALL(container, i, path_to_containers)\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"Pod: %s does not drop all capabilities\", [wl.metadata.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n\t\t\"failedPaths\": [],\n\t\t\"fixPaths\": fixPaths,\n\t\t\"alertObject\": {\"k8sApiObjects\": [wl]},\n\t}\n}\n\n# Fails if workload does not drop all capabilities\ndeny[msga] {\n\twl := input[_]\n\tspec_template_spec_patterns := {\"Deployment\", \"ReplicaSet\", \"DaemonSet\", \"StatefulSet\", \"Job\"}\n\tspec_template_spec_patterns[wl.kind]\n\tpath_to_containers := [\"spec\", \"template\", \"spec\", \"containers\"]\n\tcontainers := object.get(wl, path_to_containers, [])\n\tcontainer := containers[i]\n\n\tfixPaths := container_doesnt_drop_ALL(container, i, path_to_containers)\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"Workload: %v does not drop all capabilities\", [wl.metadata.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n\t\t\"failedPaths\": [],\n\t\t\"fixPaths\": fixPaths,\n\t\t\"alertObject\": {\"k8sApiObjects\": [wl]},\n\t}\n}\n\n# Fails if CronJob does not drop all capabilities\ndeny[msga] {\n\twl := input[_]\n\twl.kind == \"CronJob\"\n\tpath_to_containers := [\"spec\", \"jobTemplate\", \"spec\", \"template\", \"spec\", \"containers\"]\n\tcontainers := object.get(wl, path_to_containers, [])\n\tcontainer := containers[i]\n\n\tfixPaths := container_doesnt_drop_ALL(container, i, path_to_containers)\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"Cronjob: %v does not drop all capabilities\", [wl.metadata.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n\t\t\"failedPaths\": [],\n\t\t\"fixPaths\": fixPaths,\n\t\t\"alertObject\": {\"k8sApiObjects\": [wl]},\n\t}\n}\n\n# Checks if workload does not drop all capabilities\ncontainer_doesnt_drop_ALL(container, i, path_to_containers) = fix_path{\n\tpath_to_drop := [\"securityContext\", \"capabilities\", \"drop\"]\n\tdrop_list := object.get(container, path_to_drop, [])\n\tnot all_in_list(drop_list)\n\tpath := sprintf(\"%s[%d].%s[%d]\", [concat(\".\", path_to_containers), i, concat(\".\", path_to_drop), count(drop_list)])\n\tfix_path := [{\"path\": path, \"value\": \"ALL\"}]\n}\n\nall_in_list(list) {\n\t\"all\" in list\n}\n\nall_in_list(list) {\n\t\"ALL\" in list\n}\n"
+    },
+    {
         "name": "rule-can-update-configmap-v1",
         "attributes": {
             "microsoftK8sThreatMatrix": "Lateral Movement::CoreDNS poisoning",
