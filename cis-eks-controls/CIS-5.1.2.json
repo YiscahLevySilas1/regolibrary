@@ -11,7 +11,9 @@
     "attributes": {
         "armoBuiltin": true
     },
-    "rulesNames": [],
+    "rulesNames": [
+        "ensure-aws-policies-are-present"
+    ],
     "baseScore": 0,
     "impact_statement": "Care should be taken not to remove access to Amazon ECR for accounts that require this for their operation.",
     "default_value": "",

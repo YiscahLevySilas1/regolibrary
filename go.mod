@@ -7,6 +7,7 @@ require (
 	github.com/armosec/armoapi-go v0.0.119
 	github.com/go-gota/gota v0.12.0
 	github.com/kubescape/opa-utils v0.0.223
+	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.24.0
 )
 
@@ -50,6 +51,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
+	github.com/fatih/color v1.13.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
@@ -72,10 +74,13 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kubescape/go-logger v0.0.6 // indirect
 	github.com/kubescape/k8s-interface v0.0.93 // indirect
-	github.com/kubescape/rbac-utils v0.0.17 // indirect
+	github.com/kubescape/rbac-utils v0.0.20 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -85,6 +90,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
 	github.com/pkg/browser v0.0.0-20210115035449-ce105d075bb4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

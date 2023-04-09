@@ -24,7 +24,8 @@
                             "Initial access"
                         ]
                     }
-                ]
+                ],
+                "actionRequired": "configuration"
             },
             "description": "In cases where the Kubernetes cluster is provided by a CSP (e.g., AKS in Azure, GKE in GCP, or EKS in AWS), compromised cloud credential can lead to the cluster takeover. Attackers may abuse cloud account credentials or IAM mechanism to the cluster\u2019s management layer.",
             "remediation": "Limit the registries from which you pull container images from",
@@ -188,7 +189,8 @@
                             "Impact - service destruction"
                         ]
                     }
-                ]
+                ],
+                "actionRequired": "configuration"
             },
             "description": "This control identifies all Pods for which the memory limit is not set.",
             "remediation": "Set the memory limit or use exception mechanism to avoid unnecessary notifications.",
@@ -473,6 +475,7 @@
         {
             "name": "Applications credentials in configuration files",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "microsoftMitreColumns": [
                     "Credential access",
@@ -1248,6 +1251,7 @@
         {
             "name": "Exposed sensitive interfaces",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "microsoftMitreColumns": [
                     "Initial access"
@@ -2370,6 +2374,7 @@
         {
             "name": "Insecure capabilities",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "controlTypeTags": [
                     "security",
@@ -2606,6 +2611,7 @@
         {
             "name": "Resources CPU limit and request",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "controlTypeTags": [
                     "compliance",
@@ -2782,7 +2788,7 @@
             "description": "Attackers who obtain access to a pod can use its SA token to communicate with KubeAPI server. All PODs with SA token mounted (if such token has a Role or a ClusterRole binding) are considerred potentially dangerous.",
             "remediation": "Verify that RBAC is enabled. Follow the least privilege principle and ensure that only necessary PODs have SA token mounted into them.",
             "long_description": "Service account (SA) represents an application identity in Kubernetes. By default, an SA is mounted to every created pod in the cluster. Using the SA, containers in the pod can send requests to the Kubernetes API server. Attackers who get access to a pod can access the SA token (located in /var/run/secrets/kubernetes.io/serviceaccount/token) and perform actions in the cluster, according to the SA permissions. If RBAC is not enabled, the SA has unlimited permissions in the cluster. If RBAC is enabled, its permissions are determined by the RoleBindings\\\\ClusterRoleBindings that are associated with it.",
-            "test": "Check if RBAC is enabled. If is not, the sa has unlimited permissions.If RBAC enabled, list which workloads have bound service accounts and all the sas permissionsScore-",
+            "test": "Check if RBAC is enabled. If is not, the sa has unlimited permissions.If RBAC enabled, list which workloads have bound service accounts and all the sas permissions",
             "controlID": "C-0053",
             "baseScore": 6.0,
             "rules": [
@@ -2860,48 +2866,11 @@
                     "attributes": {
                         "m$K8sThreatMatrix": "Credential Access::Access container service account, Lateral Movement::Container service account",
                         "armoBuiltin": true,
+                        "resourcesAggregator": "subject-role-rolebinding",
                         "useFromKubescapeVersion": "v1.0.133"
                     },
                     "ruleLanguage": "Rego",
                     "match": [
-                        {
-                            "apiGroups": [
-                                ""
-                            ],
-                            "apiVersions": [
-                                "v1"
-                            ],
-                            "resources": [
-                                "Pod",
-                                "ServiceAccount"
-                            ]
-                        },
-                        {
-                            "apiGroups": [
-                                "apps"
-                            ],
-                            "apiVersions": [
-                                "v1"
-                            ],
-                            "resources": [
-                                "Deployment",
-                                "ReplicaSet",
-                                "DaemonSet",
-                                "StatefulSet"
-                            ]
-                        },
-                        {
-                            "apiGroups": [
-                                "batch"
-                            ],
-                            "apiVersions": [
-                                "*"
-                            ],
-                            "resources": [
-                                "Job",
-                                "CronJob"
-                            ]
-                        },
                         {
                             "apiGroups": [
                                 "rbac.authorization.k8s.io"
@@ -2922,8 +2891,8 @@
                     "remediation": "",
                     "ruleQuery": "armo_builtins",
                     "resourceCount": "subjects",
-                    "rule": "package armo_builtins\n\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    service_accounts := [service_account |  service_account= input[_]; service_account.kind == \"ServiceAccount\"]\n    service_account := service_accounts[_]\n    service_account_name := service_account.metadata.name\n\n    not saTokenNotAutoMount(service_account)\n\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"RoleBinding\"]\n\trolebinding := rolebindings[_]\n    rolesubject := rolebinding.subjects[_]\n    rolesubject.name == service_account_name\n    rolesubject.namespace == service_account.metadata.namespace\n\n    roles := [role |  role = input[_]; role.kind == \"Role\"]\n    role := roles[_]\n    role.metadata.name == rolebinding.roleRef.name\n\n    savector = {\"name\": service_account.metadata.name,\n\t\t\t\t\"namespace\": service_account.metadata.namespace,\n\t\t\t\t\"kind\": service_account.kind,\n\t\t\t\t\"relatedObjects\": [role, rolebinding]}\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster: %v\", [service_account_name, rolebinding.roleRef.name]),\n\t\t\"packagename\": \"armo_builtins\",\n       \"failedPaths\": [],\n        \"fixPaths\":[],\n\t\t\"alertScore\": 7,\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": savector\n\t\t}\n\t}\n}\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    service_accounts := [service_account |  service_account= input[_]; service_account.kind == \"ServiceAccount\"]\n    service_account := service_accounts[_]\n    service_account_name := service_account.metadata.name\n\n    not saTokenNotAutoMount(service_account)\n\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"RoleBinding\"]\n\trolebinding := rolebindings[_]\n    rolesubject := rolebinding.subjects[_]\n    rolesubject.name == service_account_name\n    rolesubject.namespace == service_account.metadata.namespace\n\n    roles := [role |  role = input[_]; role.kind == \"ClusterRole\"]\n    role := roles[_]\n    role.metadata.name == rolebinding.roleRef.name\n\n    savector = {\"name\": service_account.metadata.name,\n\t\t\t\t\"namespace\": service_account.metadata.namespace,\n\t\t\t\t\"kind\": service_account.kind,\n\t\t\t\t\"relatedObjects\": [role, rolebinding]}\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster: %v\", [service_account_name, rolebinding.roleRef.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n       \"failedPaths\": [],\n        \"fixPaths\":[],\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": savector\n\t\t}\n\t}\n}\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    service_accounts := [service_account |  service_account= input[_]; service_account.kind == \"ServiceAccount\"]\n    service_account := service_accounts[_]\n    service_account_name := service_account.metadata.name\n\n    not saTokenNotAutoMount(service_account)\n\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"ClusterRoleBinding\"]\n\trolebinding := rolebindings[_]\n    rolesubject := rolebinding.subjects[_]\n    rolesubject.name == service_account_name\n    rolesubject.namespace == service_account.metadata.namespace\n\n    roles := [role |  role = input[_]; role.kind == \"ClusterRole\"]\n    role := roles[_]\n    role.metadata.name == rolebinding.roleRef.name\n\n    savector = {\"name\": service_account.metadata.name,\n\t\t\t\t\"namespace\": service_account.metadata.namespace,\n\t\t\t\t\"kind\": service_account.kind,\n\t\t\t\t\"relatedObjects\": [role, rolebinding]}\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster: %v\", [service_account_name, rolebinding.roleRef.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n       \"failedPaths\": [],\n        \"fixPaths\":[],\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": savector\n\t\t}\n\t}\n}\n\n# ===============================================================\n\nsaTokenNotAutoMount(service_account) {\n    service_account.automountServiceAccountToken == false\n}\n\n",
-                    "resourceEnumerator": "package armo_builtins\n\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    service_accounts := [service_account |  service_account= input[_]; service_account.kind == \"ServiceAccount\"]\n    service_account := service_accounts[_]\n    service_account_name := service_account.metadata.name\n\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"RoleBinding\"]\n\trolebinding := rolebindings[_]\n    rolesubject := rolebinding.subjects[_]\n    rolesubject.name == service_account_name\n    rolesubject.namespace == service_account.metadata.namespace\n\n    roles := [role |  role = input[_]; role.kind == \"Role\"]\n    role := roles[_]\n    role.metadata.name == rolebinding.roleRef.name\n\n    savector = {\"name\": service_account.metadata.name,\n\t\t\t\t\"namespace\": service_account.metadata.namespace,\n\t\t\t\t\"kind\": service_account.kind,\n\t\t\t\t\"relatedObjects\": [role, rolebinding]}\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster: %v\", [service_account_name, rolebinding.roleRef.name]),\n\t\t\"packagename\": \"armo_builtins\",\n       \"failedPaths\": [\"\"],\n\t\t\"alertScore\": 7,\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": savector\n\t\t}\n\t}\n}\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    service_accounts := [service_account |  service_account= input[_]; service_account.kind == \"ServiceAccount\"]\n    service_account := service_accounts[_]\n    service_account_name := service_account.metadata.name\n\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"RoleBinding\"]\n\trolebinding := rolebindings[_]\n    rolesubject := rolebinding.subjects[_]\n    rolesubject.name == service_account_name\n    rolesubject.namespace == service_account.metadata.namespace\n\n    roles := [role |  role = input[_]; role.kind == \"ClusterRole\"]\n    role := roles[_]\n    role.metadata.name == rolebinding.roleRef.name\n\n    savector = {\"name\": service_account.metadata.name,\n\t\t\t\t\"namespace\": service_account.metadata.namespace,\n\t\t\t\t\"kind\": service_account.kind,\n\t\t\t\t\"relatedObjects\": [role, rolebinding]}\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster: %v\", [service_account_name, rolebinding.roleRef.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n       \"failedPaths\": [\"\"],\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": savector\n\t\t}\n\t}\n}\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    service_accounts := [service_account |  service_account= input[_]; service_account.kind == \"ServiceAccount\"]\n    service_account := service_accounts[_]\n    service_account_name := service_account.metadata.name\n\n    rolebindings := [rolebinding | rolebinding = input[_]; rolebinding.kind == \"ClusterRoleBinding\"]\n\trolebinding := rolebindings[_]\n    rolesubject := rolebinding.subjects[_]\n    rolesubject.name == service_account_name\n    rolesubject.namespace == service_account.metadata.namespace\n\n    roles := [role |  role = input[_]; role.kind == \"ClusterRole\"]\n    role := roles[_]\n    role.metadata.name == rolebinding.roleRef.name\n\n    savector = {\"name\": service_account.metadata.name,\n\t\t\t\t\"namespace\": service_account.metadata.namespace,\n\t\t\t\t\"kind\": service_account.kind,\n\t\t\t\t\"relatedObjects\": [role, rolebinding]}\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster: %v\", [service_account_name, rolebinding.roleRef.name]),\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"alertScore\": 7,\n       \"failedPaths\": [\"\"],\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": savector\n\t\t}\n\t}\n}"
+                    "rule": "package armo_builtins\n\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    subjectVector := input[_]\n    subjectVector.kind == \"ServiceAccount\"\n    \n\trole := subjectVector.relatedObjects[i]\n\trolebinding := subjectVector.relatedObjects[j]\n\tendswith(role.kind, \"Role\")\n\tendswith(rolebinding.kind, \"Binding\")\n\n    subject := rolebinding.subjects[k]\n\tis_same_subjects(subjectVector, subject)\n\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster\", [subjectVector.name]),\n\t\t\"packagename\": \"armo_builtins\",\n       \"failedPaths\": [],\n        \"fixPaths\":[],\n\t\t\"alertScore\": 7,\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": subjectVector\n\t\t}\n\t}\n}\n\n# ===============================================================\n\n# for service accounts\nis_same_subjects(subjectVector, subject) {\n\tsubjectVector.kind == subject.kind\n\tsubjectVector.name == subject.name\n\tsubjectVector.namespace == subject.namespace\n}",
+                    "resourceEnumerator": "package armo_builtins\n\n\n# Returns the rbac permission of each service account\ndeny[msga] {\n    subjectVector := input[_]\n    subjectVector.kind == \"ServiceAccount\"\n    \n\trole := subjectVector.relatedObjects[i]\n\trolebinding := subjectVector.relatedObjects[j]\n\tendswith(role.kind, \"Role\")\n\tendswith(rolebinding.kind, \"Binding\")\n\n    subject := rolebinding.subjects[k]\n\tis_same_subjects(subjectVector, subject)\n\n\n\tmsga := {\n\t\t\"alertMessage\": sprintf(\"service account: %v has the following permissions in the cluster\", [subjectVector.name]),\n\t\t\"packagename\": \"armo_builtins\",\n       \"failedPaths\": [],\n        \"fixPaths\":[],\n\t\t\"alertScore\": 7,\n        \"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": subjectVector\n\t\t}\n\t}\n}\n\n# ===============================================================\n\n# for service accounts\nis_same_subjects(subjectVector, subject) {\n\tsubjectVector.kind == subject.kind\n\tsubjectVector.name == subject.name\n\tsubjectVector.namespace == subject.namespace\n}"
                 }
             ]
         },
@@ -3727,8 +3696,29 @@
                     "dynamicMatch": [
                         {
                             "apiGroups": [
-                                "container.googleapis.com",
+                                "management.azure.com"
+                            ],
+                            "apiVersions": [
+                                "v1"
+                            ],
+                            "resources": [
+                                "ClusterDescribe"
+                            ]
+                        },
+                        {
+                            "apiGroups": [
                                 "eks.amazonaws.com"
+                            ],
+                            "apiVersions": [
+                                "v1"
+                            ],
+                            "resources": [
+                                "ClusterDescribe"
+                            ]
+                        },
+                        {
+                            "apiGroups": [
+                                "container.googleapis.com"
                             ],
                             "apiVersions": [
                                 "v1"
@@ -3739,6 +3729,7 @@
                         }
                     ],
                     "relevantCloudProviders": [
+                        "AKS",
                         "EKS",
                         "GKE"
                     ],
@@ -3746,7 +3737,7 @@
                     "description": "",
                     "remediation": "",
                     "ruleQuery": "armo_builtins",
-                    "rule": "package armo_builtins\n\n\n# Check if encryption in etcd in enabled for EKS\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"eks.amazonaws.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n    cluster_config.metadata.provider == \"eks\"\t\n\tconfig = cluster_config.data\n\n\tis_not_encrypted_EKS(config)\n    \n\t\n\tmsga := {\n\t\t\"alertMessage\": \"etcd/secret encryption is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [],\n\t\t\"fixPaths\": [],\n\t\t\"fixCommand\": \"eksctl utils enable-secrets-encryption --cluster=<cluster> --key-arn=arn:aws:kms:<cluster_region>:<account>:key/<key> --region=<region>\",\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\n\n\n# Check if encryption in etcd in enabled for GKE\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"container.googleapis.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n    cluster_config.metadata.provider == \"gke\"\t\n\tconfig := cluster_config.data\n\n\tnot is_encrypted_GKE(config)\n    \n\t\n\tmsga := {\n\t\t\"alertMessage\": \"etcd/secret encryption is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [\"data.database_encryption.state\"],\n\t\t\"fixPaths\": [],\n\t\t\"fixCommand\": \"gcloud container clusters update <cluster_name> --region=<compute_region> --database-encryption-key=<key_project_id>/locations/<location>/keyRings/<ring_name>/cryptoKeys/<key_name> --project=<cluster_project_id>\",\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\nis_encrypted_GKE(config) {\n\t config.database_encryption.state == \"1\"\n}\nis_encrypted_GKE(config) {\n\t config.database_encryption.state == \"ENCRYPTED\"\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tencryptionConfig := cluster_config.Cluster.EncryptionConfig[_]\n    goodResources := [resource  | resource =   cluster_config.Cluster.EncryptionConfig.Resources[_]; resource == \"secrets\"]\n\tcount(goodResources) == 0\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tcluster_config.Cluster.EncryptionConfig == null\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tcount(cluster_config.Cluster.EncryptionConfig) == 0\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tencryptionConfig := cluster_config.Cluster.EncryptionConfig[_]\n    count(encryptionConfig.Resources) == 0\n}"
+                    "rule": "package armo_builtins\n\n# Check if encryption in etcd in enabled for AKS\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"management.azure.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n    cluster_config.metadata.provider == \"aks\"\t\n\tconfig = cluster_config.data\n\n\tnot isEncryptedAKS(config)\n\t\n\tmsga := {\n\t\t\"alertMessage\": \"etcd/secret encryption is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [],\n\t\t\"fixPaths\": [],\n\t\t\"fixCommand\": \"az aks nodepool add --name hostencrypt --cluster-name <myAKSCluster> --resource-group <myResourceGroup> -s Standard_DS2_v2 -l <myRegion> --enable-encryption-at-host\",\n\t\t\"alertObject\": {\n            \"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\n\n# Check if encryption in etcd in enabled for EKS\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"eks.amazonaws.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n    cluster_config.metadata.provider == \"eks\"\t\n\tconfig = cluster_config.data\n\n\tis_not_encrypted_EKS(config)\n    \n\t\n\tmsga := {\n\t\t\"alertMessage\": \"etcd/secret encryption is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [],\n\t\t\"fixPaths\": [],\n\t\t\"fixCommand\": \"eksctl utils enable-secrets-encryption --cluster=<cluster> --key-arn=arn:aws:kms:<cluster_region>:<account>:key/<key> --region=<region>\",\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\n\n\n# Check if encryption in etcd in enabled for GKE\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"container.googleapis.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n    cluster_config.metadata.provider == \"gke\"\t\n\tconfig := cluster_config.data\n\n\tnot is_encrypted_GKE(config)\n    \n\t\n\tmsga := {\n\t\t\"alertMessage\": \"etcd/secret encryption is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [\"data.database_encryption.state\"],\n\t\t\"fixPaths\": [],\n\t\t\"fixCommand\": \"gcloud container clusters update <cluster_name> --region=<compute_region> --database-encryption-key=<key_project_id>/locations/<location>/keyRings/<ring_name>/cryptoKeys/<key_name> --project=<cluster_project_id>\",\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\nis_encrypted_GKE(config) {\n\t config.database_encryption.state == \"1\"\n}\nis_encrypted_GKE(config) {\n\t config.database_encryption.state == \"ENCRYPTED\"\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tencryptionConfig := cluster_config.Cluster.EncryptionConfig[_]\n    goodResources := [resource  | resource =   cluster_config.Cluster.EncryptionConfig.Resources[_]; resource == \"secrets\"]\n\tcount(goodResources) == 0\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tcluster_config.Cluster.EncryptionConfig == null\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tcount(cluster_config.Cluster.EncryptionConfig) == 0\n}\n\nis_not_encrypted_EKS(cluster_config) {\n\tencryptionConfig := cluster_config.Cluster.EncryptionConfig[_]\n    count(encryptionConfig.Resources) == 0\n}\n\nisEncryptedAKS(cluster_config) {\n\tcluster_config.properties.agentPoolProfiles.enableEncryptionAtHost == true\n}\n"
                 },
                 {
                     "name": "etcd-encryption-native",
@@ -4264,6 +4255,7 @@
         {
             "name": "Label usage for resources",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "controlTypeTags": [
                     "devops"
@@ -4322,6 +4314,7 @@
         {
             "name": "K8s common labels usage",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "controlTypeTags": [
                     "devops"
@@ -4400,6 +4393,7 @@
         {
             "name": "Images from allowed registry",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "microsoftMitreColumns": [
                     "Collection"
@@ -4750,6 +4744,7 @@
         {
             "name": "Workloads with excessive amount of vulnerabilities",
             "attributes": {
+                "actionRequired": "configuration",
                 "armoBuiltin": true,
                 "controlTypeTags": [
                     "security",
@@ -5009,8 +5004,28 @@
                     "dynamicMatch": [
                         {
                             "apiGroups": [
-                                "management.azure.com",
-                                "container.googleapis.com",
+                                "management.azure.com"
+                            ],
+                            "apiVersions": [
+                                "v1"
+                            ],
+                            "resources": [
+                                "ClusterDescribe"
+                            ]
+                        },
+                        {
+                            "apiGroups": [
+                                "container.googleapis.com"
+                            ],
+                            "apiVersions": [
+                                "v1"
+                            ],
+                            "resources": [
+                                "ClusterDescribe"
+                            ]
+                        },
+                        {
+                            "apiGroups": [
                                 "eks.amazonaws.com"
                             ],
                             "apiVersions": [
@@ -5030,7 +5045,7 @@
                     "description": "",
                     "remediation": "",
                     "ruleQuery": "armo_builtins",
-                    "rule": "package armo_builtins\n\n\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"management.azure.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n    cluster_config.metadata.provider == \"aks\"\t\n    config := cluster_config.data\n    config.properties.enableRBAC == false\n\n\tmsga := {\n\t\t\"alertMessage\": \"rbac is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [\"data.properties.enableRBAC\"],\n\t\t\"fixCommand\": \"\",\n\t\t\"fixPaths\": [],\n\t\t\"alertObject\": {\n\t\t\t\"k8sApiObjects\": [],\n            \"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\n\n\n"
+                    "rule": "package armo_builtins\n\ndeny[msga] {\n\tcluster_config := input[_]\n\tcluster_config.apiVersion == \"management.azure.com/v1\"\n\tcluster_config.kind == \"ClusterDescribe\"\n\tcluster_config.metadata.provider == \"aks\"\n\tconfig := cluster_config.data\n\tnot config.properties.enableRBAC == true\n\n\tmsga := {\n\t\t\"alertMessage\": \"rbac is not enabled\",\n\t\t\"alertScore\": 3,\n\t\t\"packagename\": \"armo_builtins\",\n\t\t\"failedPaths\": [\"data.properties.enableRBAC\"],\n\t\t\"fixCommand\": \"\",\n\t\t\"fixPaths\": [],\n\t\t\"alertObject\": {\n            \t\t\"externalObjects\": cluster_config\n\t\t}\n\t}\n}\n\n\n\n"
                 },
                 {
                     "name": "rbac-enabled-native",
