@@ -1,20 +1,26 @@
-# Welcome to Kubescape Regolibrary!
+<!-- markdown-link-check-disable -->
+[![Version](https://img.shields.io/github/v/release/kubescape/regolibrary)](releases)
+[![release-date](https://img.shields.io/github/release-date/kubescape/regolibrary)](releases)
+<!-- markdown-link-check-enable-->
+[![GitHub](https://img.shields.io/github/license/kubescape/kubescape)](https://github.com/kubescape/kubescape/blob/master/LICENSE)
+<!-- markdown-link-check-enable-->
 
-The main components of the [regolibrary](https://www.armosec.io/blog/kubescape-open-source-kubernetes-security-platform/?utm_source=github&utm_medium=repository):
+# Kubescape Regolibrary
 
-**Framework** - a group of controls to test against
-
-**Control** - a potential vulnerability to check, can include multiple rules
-
-**Rule** - a single specific test
-
-These are used by [Kubescape](https://github.com/kubescape/kubescape).
-
+This repository contains a library of security controls that codify Kubernetes best practices derived from the most prevalent security frameworks in the industry. [Kubescape](https://github.com/kubescape/kubescape) uses these controls to scan again running clusters or manifest files under development. They’re written in Rego, the purpose-built declarative policy language that supports Open Policy Agent (OPA).
 
 
-## **Contributing**
+## Terminology
 
-### **Add a framework** 
+- **Framework** - a group of controls to test against
+
+- **Control** - a potential vulnerability to check, can include multiple rules
+
+- **Rule** - a single specific test
+
+## Contributing
+
+### Add a framework
 
 Add `frameworkName.json` file in the `/frameworks` directory
 
@@ -44,7 +50,7 @@ Example of a framework:
 * Attribute `"armoBuiltin": true` - mandatory for armo rules. Only ARMO team members are authorized to create builtin objects.
 * controlNames - List of controls to run, must be exact name. Use copy-paste to be sure.
 
-### **Add a control**
+### Add a control
 
 Add `controlName.json` file in the `/controls` directory.
 
@@ -74,7 +80,7 @@ Example of a control:
 
 * See [control go struct](https://github.com/kubescape/opa-utils/blob/master/reporthandling/datastructures.go#L56) for more control fields
 
-### **Add a rule**:
+### Add a rule:
 
 1. Add to `/rules` a new directory with the rule name
 
@@ -162,13 +168,44 @@ Example of rule.metadata.json:
     See structure of a [rule response](https://github.com/kubescape/opa-utils/blob/master/reporthandling/datastructuresv1.go#L23)
 
 
-4. Add a test for the new rule (and run it!). Learn how to add a test [here](/rules-tests/README.md) and how to run it [here](/testrunner/README.md)
+4. Add a test for the new rule (and run it!). Learn how to add a test [here](testrunner/README.md#adding-new-rules) and how to run it [here](testrunner/README.md).
 
 5. Add `filter.rego` if needed - If it exists, the filter is run by Kubescape to calculate ‘all resources’ = the number of potential resources to fail. It affects the risk score. This is needed in cases where a rule asks for resources that wil not potentially fail. Example: if a rule asks for pods and service accounts to see if they are connected but only fails the pods, we would create a filter rego that returns only pods.
 
+**N.B.** To speed up the rule creation, we provided the script `scripts/init-rule.py`. This tool for scaffolding and code generation can be used to bootstrap a new rule fast. Let's see an example. To create a new rule, type the command:
+
+```shell
+python3 scripts/init-rule.py \
+    --name "ensure-something-is-set" \
+    --fix-command "chmod 700 /tmp/file" \
+    --rule-description "this is an example description" \
+    --rule-remediation "this is an example remediation" \
+    --alert-message "found something weird" \
+    --test-list "success,failed_1,failed_2"
+```
+
+This command will create the following directory structure in the **regolibrary** repository.
+
+```shell
+rules/ensure-something-is-set/
+├── raw.rego
+├── rule.metadata.json
+└── test
+    ├── failed_1
+    │   ├── expected.json
+    │   └── input
+    ├── failed_2
+    │   ├── expected.json
+    │   └── input
+    └── success
+        ├── expected.json
+        └── input
+```
+
+To have a complete overview about the script, type this command: `python3 scripts/init-rule.py --help`.
 
 ## OPA bundles
-The Kubescape regolibrary is [available](../../releases/latest) as an [OPA bundle](https://www.openpolicyagent.org/docs/latest/management-bundles), for both targets, WASM and Rego. 
+The Kubescape regolibrary is [available](https://github.com/kubescape/regolibrary/releases/latest) as an [OPA bundle](https://www.openpolicyagent.org/docs/latest/management-bundles), for both targets, WASM and Rego. 
 
 ### Using the bundles
 > Endpoint names are normalized to be used as a Rego package name. Here are some examples:
@@ -270,19 +307,24 @@ The following controls are not supported in the OPA bundles:
 - C-0083 - Workloads with critical vulnerabilities exposed to external traffic
 <!-- End of OPA bundles removed controls -->
 
-## Support
+## Support & Communication
 Reach out if you have any questions:
 
 * [Open an issue](https://github.com/kubescape/regolibrary/issues/new/choose)
-* [Join us](https://discord.com/invite/WKZRaCtBxN) in the discussion on our discord server!
+* [Slack Community ](https://cloud-native.slack.com/archives/C04EY3ZF9GE) For any Q&A or support you can reach us at our CNCF Slack channels
 
-We aren't open for contributions currently, but feel free to contact us with suggestions :)
 
----
+## Learn more: 
+- [NSA Framework](https://www.nsa.gov/Press-Room/News-Highlights/Article/Article/2716980/nsa-cisa-release-kubernetes-hardening-guidance/)
 
-### Our frameworks include:
-#### [NSA Framework](https://www.nsa.gov/Press-Room/News-Highlights/Article/Article/2716980/nsa-cisa-release-kubernetes-hardening-guidance/)
+- [MITRE ATT&CK® Framework](https://www.microsoft.com/security/blog/wp-content/uploads/2021/03/Matrix-1536x926.png)
 
-#### [MITRE ATT&CK® Framework](https://www.microsoft.com/security/blog/wp-content/uploads/2021/03/Matrix-1536x926.png)
+- [CIS Framework](https://workbench.cisecurity.org/benchmarks/8973)
 
-#### [CIS Framework](https://workbench.cisecurity.org/benchmarks/8973)
+## Contributions
+
+Thanks to all our contributors! Check out our [CONTRIBUTING](https://github.com/kubescape/kubescape/blob/master/CONTRIBUTING.md) file to learn how to join them.
+
+* Feel free to pick a task from the [issues](https://github.com/kubescape/regolibrary/issues?q=is%3Aissue+is%3Aopen+label%3A%22open+for+contribution%22), roadmap or suggest a feature of your own.
+* [Open an issue](https://github.com/kubescape/regolibrary/issues/new/choose): we aim to respond to all issues within 48 hours.
+* [Join the CNCF Slack](https://slack.cncf.io/) and then our [users](https://cloud-native.slack.com/archives/C04EY3ZF9GE) or [developers](https://cloud-native.slack.com/archives/C04GY6H082K) channel.

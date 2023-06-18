@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -13,6 +14,7 @@ var (
 	testSingleRegoDirectory = "test-single-rego"
 	// relativeRuleTestsPath   = "../rules-tests"
 	rulesDirectory = "../rules"
+	ruleName       = flag.String("rule", "", "rule to test")
 )
 
 // Run all tests inside rules-tests
@@ -38,14 +40,19 @@ func TestAllRules(t *testing.T) {
 
 // Change the dir variable to the name of the rule you want to test (in the rules-tests dir)
 func TestSingleRule(t *testing.T) {
-	dir := fmt.Sprintf("%v/%v", rulesDirectory, "etcd-peer-tls-enabled")
+	if *ruleName == "" {
+		t.Log("please, provide the rule name you want to test using '-rule' flag.")
+		os.Exit(1)
+	}
+	dir := fmt.Sprintf("%v/%v", rulesDirectory, *ruleName)
+
 	assert.NoError(t, opaprocessor.RunAllTestsForRule(t, dir), fmt.Sprintf("rule: %s", dir))
 }
 
 // To print the output
 // Change the testDir variable to the directory of the rego you want to test
 func TestSingleRego(t *testing.T) {
-	testDir := "alert-rw-hostpath"
+	testDir := "ensure-endpointprivateaccess-is-enabled"
 	dir := fmt.Sprintf("%v/input", testSingleRegoDirectory)
 	mocks, err := os.Open(dir)
 	if err != nil {
